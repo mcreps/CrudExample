@@ -1,0 +1,95 @@
+﻿@page "/car-index"
+@using Microsoft.AspNetCore.Components
+@using CrudExample.Models
+@using CrudExample.Data
+
+@inject DataProvider _dataProvider
+
+@inject MudBlazor.ISnackbar snackBar
+
+<MudCard Elevation="25">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h6">Add / Edit Cars</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudTextField @bind-Value="_car.year" Label="Year" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <MudTextField @bind-Value="_car.Name" Label="Name" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <MudTextField @bind-Value="_car.Mpg" Label="Mpg" Variant="Variant.Text" Margin="Margin.Normal"></MudTextField>
+        <br />
+        <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="Save">Save Car</MudButton>
+    </MudCardContent>
+</MudCard>
+
+
+<MudTable Class="pt-4 mt-4" Elevation="25" Items="@_cars" 
+          Filter="new Func<Car, bool>(Search)" 
+          @bind-customer="_car">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Cars</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Search for Car..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Year</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Mpg</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Id">@context.year</MudTd>
+        <MudTd DataLabel="FirstName">@context.Name</MudTd>
+        <MudTd DataLabel="LastName">@context.Mpg</MudTd>
+        <MudTd DataLabel="">
+            <MudFab @onclick="@(()=>Edit(@context.Guid))" Color="Color.Primary" Icon="@Icons.Material.Filled.Edit" Size="Size.Small" IconSize="Size.Small" />
+            <MudFab @onclick="@(()=>Delete(@context.Guid))" Color="Color.Secondary" Icon="@Icons.Material.Filled.Delete" Size="Size.Small" IconSize="Size.Small" />
+        </MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code{
+    private string _searchString = "";
+    private Car _car = new();
+    private List<Car> _cars = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetCars();
+    }
+
+    private async Task GetCars()
+    {
+        _cars = await _dataProvider.GetCars("Autos");
+    }
+    
+    private async Task Save()
+    {
+        await _dataProvider.SaveCar("Autos", _car);
+        _car = new Car();
+        snackBar.Add("Car Saved.", Severity.Success);
+        await GetCars();
+    }
+    
+    private void Edit(string guid)
+    {
+        _car = _cars.FirstOrDefault(c => c.Guid == guid);
+    }
+    
+    private async Task Delete(string guid)
+    {
+        await _dataProvider.DeleteCar("Autos", guid);
+        snackBar.Add("Customer Deleted.", Severity.Success);
+        await GetCars();
+    }
+
+    #region Search Filters
+
+    private bool Search(Car car)
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return true;
+        return car.Name.Contains(_searchString, StringComparison.OrdinalIgnoreCase);
+    }
+
+    #endregion
+
+}
